@@ -1,0 +1,94 @@
+setup cron job to populate database with slots every night
+cron jon to send emails of bookings every day 6 am
+cron job to disable slots after they have started
+create emails
+1) for 6 AM confirmation
+2) for confirmation 1 hour before the slot
+3) for booking cancelled due to Institute Holiday/Counsellor on Leave
+
+
+okay now I have made the django app and the docker-compose file. I want to deploy it on my google cloud instance with domain name ticcapi.servatom.com. How do I do that now?
+Booking:
+    1) creating new booking:
+        check if the student has already booked a slot for that day, if yes, raise error
+        if AvailableSlots.isAvailable:
+            if AvailableSlots.capacity - AvailableSlots.slots_booked>=1
+                book the slot
+                increase slots_booked by 1
+            else:
+                raise error
+        else:
+            raise error
+    2) cancel booking:
+        if not is_active:
+            raise error that booking is already cancelled
+        decrease slots_booked by 1
+        #see, if it was a holiday, so booking would automatically be Cancelled
+        cancel the booking, update status of booking as cancelled by student or cancelled by counsellor
+        if AvailableSlots.capacity - AvailableSlots.slots_booked>=1
+            make the slot available
+
+
+
+Leave:    
+    1)  Adding new leave:
+        check if the counsellor who is adding their leave, already doesn't have a leave in the period. If yes, raise error
+        if the leave date is in the past, raise error
+        if capacity = 2:
+            send the people who currently have booking of that slot an email that their booking has been cancelled
+            mark those bookings as is_active=False, update remark = 'Counsellor on leave'
+            mark the slot as isAvailable=False
+            reduce capacity to 0
+
+        if capacity = 4:
+            if slots_booked = 3:
+                check the last booking corresponding to that slot, and send email to that student
+                mark that booking is_active=False, remark = 'Counsellor on leave'
+
+            if slots_booked = 4:
+                check the last two bookings corresponding to that slot, and send email to those students
+                mark those bookings as is_active=False, update remark = 'Counsellor on leave'
+            reduce capacity to 2
+
+
+    2)  leave is deleted:
+        check if the slot date is not in a holiday or the slot date is not in the past
+            mark the slot as isAvailable=True
+            increase capacity to 2
+            fetch students for whom booking was cancelled for that slot, their remark will be 'Counsellor on leave'
+            send them an email that the counsellor is back from leave, and they can book the slot again if they want to
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    1) check if slots_booked >= 3
+        if slots_booked = 3:
+            check the last booking corresponding to that slot, and send email to that student
+            mark that booking is_active=True, remark = 'Pending'
+
+
+        if slots_booked = 4:
+            check the last two bookings corresponding to that slot, and send email to those students
+            mark those bookings as is_active=True, update remark = 'Pending'
+
+    2) check if slots_booked < 3
+        if slots_booked = 2:
+            check the last booking corresponding to that slot, and send email to that student
+            mark that booking is_active=True
+        if slots_booked =1:
+            check the last two bookings corresponding to that slot, and send email to those students
+            mark those bookings as is_active=True

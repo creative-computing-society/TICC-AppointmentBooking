@@ -1,0 +1,66 @@
+version: "3.8"
+
+services:
+    pgdb:
+        image: postgres:14
+        container_name: pgdb-ticc
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+        env_file:
+            - docker-env
+    redis:
+        image: "redis:alpine"
+        volumes:
+            - redis_data:/data
+    celery:
+        build: .
+        command: celery -A config.celery worker --pool=prefork --autoscale=8,2 -l info
+        volumes:
+            - .:/usr/src/app/
+        env_file:
+            - docker-env
+        depends_on:
+            - redis
+        links:
+            - redis
+            - pgdb
+        restart: always
+    celery-beat:
+        build: .
+        command: celery -A config.celery beat -l info
+        volumes:
+            - .:/usr/src/app/
+        env_file:
+            - docker-env
+        depends_on:
+            - redis
+            - celery
+        links:
+            - redis
+            - pgdb
+            - celery
+        restart: always
+    django:
+        build: .
+        container_name: django
+        command: >
+            sh -c "
+                python manage.py makemigrations &&
+                python manage.py migrate --noinput &&
+                nohup python manage.py createsuperuser --noinput & python manage.py runserver 0.0.0.0:8000"
+        volumes:
+            - .:/usr/src/app/
+        ports:
+            - "8000:8000"
+        env_file:
+            - docker-env
+        depends_on:
+            - pgdb
+            - redis
+        links:
+            - pgdb
+            - redis
+        restart: on-failure
+volumes:
+    pgdata:
+    redis_data:

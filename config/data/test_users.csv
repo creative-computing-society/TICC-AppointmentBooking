@@ -1,0 +1,8 @@
+email,full_name,phone_number,password,is_ticc_counsellor,is_ticc_manager
+testcounsellor1@gmail.com, Test Counsellor1, 9876543210,123456,1,0
+testcounsellor2@gmail.com, Test Counsellor2, 9876543210,123456,1,0
+testmanager1@gmail.com, Test Manager1, 9876543210,123456,0,1
+testmanager2@gmail.com, Test Manager2, 9876543210,123456,0,1
+teststudent1@gmail.com, Test Student1, 9876543210,123456,0,0
+teststudent2@gmail.com, Test Student2, 9876543210,123456,0,0
+
