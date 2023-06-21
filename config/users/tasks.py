@@ -23,7 +23,7 @@ def send_6AM_booking_notification():
     for booking in bookings:
         reciever_email = booking.student.user.email
         subject = 'Please Confirm Your Availability for Your TICC Appointment'
-        cancellation_link = os.environ.get('BASE_URL') + 'api/bookings/emailcancellation/' + str(booking.token) + '/'
+        cancellation_link = os.environ.get('CANCELLATION_EMAIL_BASE_URL') + 'api/bookings/emailcancellation/' + str(booking.token) + '/'
 
          # Modify the date and time format in the context dictionary
         slot_date = booking.slot.date.strftime('%A, %B %d')
