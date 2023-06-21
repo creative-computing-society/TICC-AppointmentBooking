@@ -76,7 +76,7 @@ class UserUpdateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     authentication_classes = [TokenAuthentication]
 
-    def post(self, request):
+    def patch(self, request):
         user = request.user
         serializer = UserSerializer(user, data=request.data, partial=True)
         
@@ -91,7 +91,7 @@ class UserDeleteView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     authentication_classes = [TokenAuthentication]
 
-    def post(self, request):
+    def delete(self, request):
         user = request.user
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

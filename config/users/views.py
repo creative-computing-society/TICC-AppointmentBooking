@@ -29,7 +29,7 @@ class UserDetail(generics.RetrieveAPIView):
    
     def get_object(self):
         user = self.request.user
-        user_id = self.request.data.get('user_id')
+        user_id = self.request.query_params.get('user_id')
         # Allow the user to access their own details
         if not user_id or user.id == int(user_id):
             return user
@@ -73,7 +73,7 @@ class StudentDetail(generics.RetrieveAPIView):
 
     def get_object(self):
         user = self.request.user
-        user_id = self.request.data.get('user_id')
+        user_id = self.request.query_params.get('user_id')
 
         if not user_id or user.id == int(user_id):
             try:
