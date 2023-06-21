@@ -7,14 +7,6 @@ class IsTiccCounsellor(permissions.BasePermission):
         return request.user.is_ticc_counsellor
 
 
-class IsStudentOrTiccCounsellor(permissions.BasePermission):
-    def has_permission(self, request, view):
-        user = request.user
-        user_id = request.data.get('id')
-        return user.is_ticc_counsellor or user.student
-
-
-
 class isTiccCounsellorOrManager(permissions.BasePermission):
     def has_permission(self, request, view):
         user = request.user

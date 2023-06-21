@@ -5,7 +5,7 @@ from .models import User, Student, Booking
 from .serializers import UserSerializer, StudentSerializer, BookingSerializer
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied, NotFound
-from .permissions import IsTiccCounsellor, IsStudentOrTiccCounsellor, IsStudent
+from .permissions import IsTiccCounsellor, IsStudent
 from slots.models import AvailableSlot
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
@@ -136,17 +136,15 @@ class TiccCounsellorList(generics.ListAPIView):
 
 
 class ListBookingsView(generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsStudentOrTiccCounsellor]
+    permission_classes = [permissions.IsAuthenticated]
     authentication_classes = [TokenAuthentication, authentication.SessionAuthentication]
     serializer_class = BookingSerializer
 
     def get_queryset(self):
         user = self.request.user
-        user_id = self.request.data.get('user_id')
-        is_active = self.request.data.get('is_active')
-        date = self.request.data.get('date')
-        if is_active:
-            is_active = is_active.lower() == 'true'
+        user_id = self.request.query_params.get('user_id')
+        is_active = self.request.query_params.get('is_active')
+        date = self.request.query_params.get('date')
         
         if user.is_ticc_counsellor:
             queryset = Booking.objects.all()
@@ -174,13 +172,13 @@ class ListBookingsView(generics.ListAPIView):
 
     
 class RetrieveBookingView(generics.RetrieveAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsStudentOrTiccCounsellor]
+    permission_classes = [permissions.IsAuthenticated]
     authentication_classes = [TokenAuthentication, authentication.SessionAuthentication]
     serializer_class = BookingSerializer
 
     def get_object(self):
         user = self.request.user
-        booking_id = self.request.data.get('booking_id')  # Assuming you pass the booking ID in the URL
+        booking_id = self.request.query_params.get('booking_id')  # Assuming you pass the booking ID in the URL
         if not booking_id:
             raise NotFound("Booking ID not provided.")
         try:
@@ -215,9 +213,8 @@ class CreateBookingView(generics.CreateAPIView):
         if slot.capacity == slot.slots_booked or not slot.isAvailable:
             return Response({'detail': 'Slot is already booked.'}, status=status.HTTP_400_BAD_REQUEST)
         # Check if the student already has an appointment for the slot
-        if student.bookings.filter(slot=slot).exists() or student.bookings.filter(slot__date=slot.date).exists():
+        if student.bookings.filter(slot=slot, is_active=True).exists() or student.bookings.filter(slot__date=slot.date, is_active=True).exists():
             return Response({'detail': 'You already have an appointment today.'}, status=status.HTTP_400_BAD_REQUEST)
-        print(slot)
         # Create the booking
         booking = Booking(student=student, slot=slot, additional_info=additional_info, is_active=True)
         booking.save()
@@ -230,12 +227,6 @@ class CreateBookingView(generics.CreateAPIView):
         
         serializer = self.get_serializer(booking)
         print(serializer.data)
-        # Send email to student
-        # try:
-        #     send_booking_confirmation_email.delay(student.user.email, booking)
-        # except Exception as e:
-        #     print(e) ##use logger
-        #send_booking_confirmation_email.delay(student.user.email, serializer.data)
         slot_date = booking.slot.date.strftime('%A, %B %d')
         slot_start_time = booking.slot.start_time.strftime('%I:%M %p')
         context = {
@@ -254,7 +245,7 @@ class CancelBookingView(APIView):
 
     def delete(self, request, *args, **kwargs):
         user = request.user
-        booking_id = request.data.get('booking_id')
+        booking_id = request.query_params.get('booking_id')
         
         # Check if the booking exists and belongs to the student
         try:
@@ -281,20 +272,26 @@ class CancelBookingView(APIView):
 class UpdateBookingView(APIView):
     authentication_classes = [TokenAuthentication, authentication.SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsTiccCounsellor]
-    
+
     def patch(self, request, *args, **kwargs):
-        booking_id = request.data.get('booking_id')  # Assuming you pass the booking ID in the URL
+        booking_id = request.data.get('booking_id')
 
         try:
             booking = Booking.objects.get(id=booking_id)
         except Booking.DoesNotExist:
             return Response({'detail': 'Booking not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = BookingSerializer(booking, data=request.data, partial=True)
+        data = {}
+        for field in ['remarks', 'assigned_counsellor', 'is_active']:
+            if field in request.data:
+                data[field] = request.data[field]
+
+        serializer = BookingSerializer(booking, data=data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 

@@ -39,14 +39,6 @@ class StudentSerializer(serializers.ModelSerializer):
         return instance
 
 
-# class BookingSerializer(serializers.ModelSerializer):
-#     student_email = serializers.EmailField(source='student.user.email', read_only=True)
-#     assigned_counsellor_email = serializers.EmailField(source='assigned_counsellor.user.email', read_only=True)
-#     slot = AvailableSlotSerializer(read_only=True)
-#     class Meta:
-#         model = Booking
-#         fields = ['id', 'slot', 'student', 'student_email', 'additional_info', 'remarks',  "assigned_counsellor", "assigned_counsellor_email", "is_active"]
-
 class BookingSerializer(serializers.ModelSerializer):
     student_email = serializers.EmailField(source='student.user.email', read_only=True)
     assigned_counsellor_email = serializers.EmailField(source='assigned_counsellor.user.email', read_only=True)
