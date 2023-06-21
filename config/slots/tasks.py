@@ -33,3 +33,16 @@ def generate_slots():
 
 
      
+@shared_task
+def disable_slots_after_they_are_over():
+    # Get the current date and time
+    now = timezone.now()
+    today = now.date() 
+    current_time = now.time()
+
+    # Get all the slots that are in the past
+    slots = AvailableSlot.objects.filter(date__lte=today, end_time__lte=current_time)
+    for slot in slots:
+        slot.is_available = False
+        slot.save()
+        print("Slot disabled for ", slot.date, slot.start_time, slot.end_time)

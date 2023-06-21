@@ -31,4 +31,8 @@ app.conf.beat_schedule = {
         'task': 'users.tasks.send_notification_1hrbefore_booking',
         'schedule': crontab(hour='8-15', minute='0,30'),
     },
+    'disable_slots': {
+        'task': 'slots.tasks.disable_slots_after_they_are_over',
+        'schedule': crontab(hour='9-17', minute='0,30'),
+    },
 }
