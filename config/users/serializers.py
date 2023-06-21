@@ -8,6 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'email', 'full_name', 'phone_number', 'is_ticc_counsellor', 'is_ticc_manager', 'password']
+        read_only_fields = ['is_ticc_counsellor', 'is_ticc_manager']
 
     def create(self, validated_data):
         password = validated_data.pop('password')
