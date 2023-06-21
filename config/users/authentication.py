@@ -4,7 +4,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from rest_framework import status, permissions
-from .serializers import UserSerializer
+from .serializers import UserSerializer, StudentSerializer
 
 class TokenAuthentication(BaseTokenAuthentication):
     """
@@ -24,9 +24,21 @@ class UserLoginView(APIView):
         user = authenticate(request, username=email, password=password)
 
         if user is not None:
-            # Generate or retrieve the token for the user
             token, created = Token.objects.get_or_create(user=user)
-            return Response({'token': token.key})
+
+            user_serializer = UserSerializer(user)
+            try:
+                student_serializer = StudentSerializer(user.student)
+            except:
+                return Response({
+                'user': user_serializer.data,
+                'token': token.key
+                })
+            return Response({
+                'user': user_serializer.data,
+                'student': student_serializer.data,
+                'token': token.key
+            })
         else:
             return Response({'error': 'Invalid credentials'}, status=401)
 
@@ -40,7 +52,13 @@ class UserCreationView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             token, created = Token.objects.get_or_create(user=user)
-            return Response({'user_id': user.id, 'token':token.key}, status=status.HTTP_201_CREATED)
+            user_serializer = UserSerializer(user)
+            student_serializer = StudentSerializer(user.student)
+            return Response({
+                'user': user_serializer.data,
+                'student': student_serializer.data,
+                'token': token.key
+            })
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
