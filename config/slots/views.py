@@ -47,33 +47,23 @@ class AvailableSlotDetail(generics.RetrieveAPIView):
     
  
 
-class CreateListHolidayView(generics.ListCreateAPIView):
+class ListHolidayView(generics.ListAPIView):
     authentication_classes = [TokenAuthentication, authentication.SessionAuthentication]
     queryset = Holiday.objects.all()
     serializer_class = HolidaySerializer
-
-    def get_permissions(self):
-        if self.request.method == 'POST':
-            # Only allow authenticated users with specific permissions for creating
-            return [permissions.IsAuthenticated(), isTiccCounsellorOrManager()]
-        else:
-            # Allow any user to list holidays
-            return [permissions.IsAuthenticated()]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        # Check if date parameter is provided
-        date = self.request.data.get('date')
-        if date:
-            # Retrieve holiday details for the specified date
-            try:
-                holiday = Holiday.objects.get(date=date)
-                serializer = self.get_serializer(holiday)
-                return Response(serializer.data)
-            except Holiday.DoesNotExist:
-                return Response({'detail': 'No holiday found for the specified date'}, status=404)
+        queryset = Holiday.objects.all()
+        serializer = HolidaySerializer(queryset, many=True)
+        return Response(serializer.data)
 
-        # Return list of all holidays
-        return self.list(request, *args, **kwargs)
+
+class CreateHolidayView(generics.CreateAPIView):
+    authentication_classes = [TokenAuthentication, authentication.SessionAuthentication]
+    queryset = Holiday.objects.all()
+    serializer_class = HolidaySerializer
+    permission_classes = [permissions.IsAuthenticated, isTiccCounsellorOrManager]
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

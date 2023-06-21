@@ -24,10 +24,10 @@ class HolidaySerializer(serializers.ModelSerializer):
 
         # Check if the holiday date is in the past
         if date < timezone.now().date():
-            raise serializers.ValidationError({'detail': 'Holiday date must be in the future or today.'}, status=status.HTTP_400_BAD_REQUEST)
+            raise serializers.ValidationError({'detail': 'Holiday date must be in the future or today.'})
         # Check if a holiday with the same date already exists
         if Holiday.objects.filter(date=date).exists():
-            raise serializers.ValidationError({'detail': "A holiday with the same date already exists."}, status=status.HTTP_400_BAD_REQUEST)
+            raise serializers.ValidationError({'detail': "A holiday with the same date already exists."})
 
         return super().create(validated_data)
 
