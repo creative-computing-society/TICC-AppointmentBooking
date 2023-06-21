@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import Q
 from django.contrib.auth.models import BaseUserManager
 from django.core.exceptions import ValidationError
 import uuid
@@ -92,7 +93,9 @@ class Booking(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['student', 'slot'], name='unique_booking')
+            models.UniqueConstraint(fields=['student', 'slot'], 
+                                    name='unique_booking',
+                                    condition=Q(remarks__in=['Pending', 'Completed', 'Missed by student']))
         ]
 
     def save(self, *args, **kwargs):
