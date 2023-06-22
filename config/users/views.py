@@ -310,3 +310,20 @@ class emailBookingCancellation(APIView):
 
         return Response({'detail': 'Booking cancelled successfully.'}, status=status.HTTP_204_NO_CONTENT)
     
+
+
+class SearchView(APIView):
+    def get(self, request):
+        search_word = request.query_params.get('searchWord', '')
+
+        # Search for students, users, and roll numbers
+        students = Student.objects.filter(user__email__icontains=search_word) | \
+                   Student.objects.filter(user__full_name__icontains=search_word) | \
+                   Student.objects.filter(roll_number__icontains=search_word)
+
+        # Limit the number of results to 20
+        students = students[:20]
+
+        # Serialize the results
+        serializer = StudentSerializer(students, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

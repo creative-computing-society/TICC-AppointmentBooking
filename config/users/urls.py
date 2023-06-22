@@ -20,6 +20,7 @@ urlpatterns = [
     path('bookings/cancel/', views.CancelBookingView.as_view(), name='cancel-booking'),
     path('bookings/update/', views.UpdateBookingView.as_view(), name='update-booking'),
     path('bookings/emailcancellation/<uuid:booking_token>/', views.emailBookingCancellation.as_view(), name='cancel_booking'),
+    path('search/', views.SearchView.as_view(), name='search'),
 ]
 
 
