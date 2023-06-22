@@ -47,11 +47,13 @@ services:
             sh -c "
                 python manage.py makemigrations &&
                 python manage.py migrate --noinput &&
-                z
+                python manage.py shell -c 'from users.models import User; User.objects.create_superuser(email=os.environ.get(\"DJANGO_SUPERUSER_EMAIL\"), full_name=os.environ.get(\"DJANGO_SUPERUSER_FULLNAME\"), phone_number=os.environ.get(\"DJANGO_SUPERUSER_PHONE\"), password=os.environ.get(\"DJANGO_SUPERUSER_PASSWORD\"))' &&
+                python manage.py runserver 0.0.0.0:8000"
         volumes:
             - .:/usr/src/app/
+            - ./static:/usr/src/app/static
         ports:
-            - "8000:8000"
+            - "5755:8000"
         env_file:
             - docker-env
         depends_on:

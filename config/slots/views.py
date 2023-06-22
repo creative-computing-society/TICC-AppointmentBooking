@@ -81,7 +81,7 @@ class DeleteHolidayView(generics.DestroyAPIView):
     serializer_class = HolidaySerializer
 
     def delete(self, request, *args, **kwargs):
-        date = self.request.data.get('date')
+        date = self.request.query_params.get('date')
         if date:
             try:
                 holiday = Holiday.objects.get(date=date)
