@@ -10,7 +10,7 @@ Booking = apps.get_model('users', 'Booking')
 class AvailableSlotSerializer(serializers.ModelSerializer):
     class Meta:
         model = AvailableSlot
-        fields = ['id', 'date', 'start_time', 'end_time', 'slots_booked', 'isAvailable']
+        fields = ['id', 'date', 'start_time', 'end_time', 'slots_booked', 'isAvailable', 'capacity']
         
 
 
@@ -34,23 +34,16 @@ class HolidaySerializer(serializers.ModelSerializer):
 
 def validate_future_date(value):
     if value < timezone.now().date():
-        raise serializers.ValidationError('Start date must be in the future or today.')
+        raise ValueError('Start date must be in the future or today.')
 
 class LeaveSerializer(serializers.ModelSerializer):
     counsellor_email = serializers.EmailField(source='counsellor.email', read_only=True)
     class Meta:
         model = Leave
-        fields = ['id', 'counsellor', 'counsellor_email', 'date', 'description']
-        validators = [
-            serializers.UniqueTogetherValidator(
-                queryset=Leave.objects.all(),
-                fields=['counsellor', 'date'],
-                message='Leave already exists for this counsellor on this date.'
-            )
-        ]
+        fields = ['id', 'counsellor', 'counsellor_email', 'date', 'description', 'slots']
 
     @transaction.atomic()
-    def update_slots_and_bookings(self, date):
+    def update_slots_and_bookings(self, slots, date):
         """
         Update the available slots and bookings for the given date.
 
@@ -63,8 +56,11 @@ class LeaveSerializer(serializers.ModelSerializer):
             date (datetime.date): The date for which to update slots and bookings.
 
         """
-        slots = AvailableSlot.objects.filter(date=date)
+
+        validate_future_date(date)
         for slot in slots:
+            print(slot)
+            print("********************")
             if slot.capacity == 2:
                 # For slots with capacity 2, set capacity and bookings to 0
                 slot.capacity = 0
@@ -96,25 +92,15 @@ class LeaveSerializer(serializers.ModelSerializer):
                             break
 
     def create(self, validated_data):
-        """
-        Create a new leave instance.
 
-        This method creates a new leave instance and updates the available slots and bookings
-        based on the leave date. It ensures that a leave doesn't already exist for the counsellor
-        on the same date, and that the date is in the future or today.
 
-        Args:
-            validated_data (dict): Validated data for creating the leave instance.
-
-        Returns:
-            Leave: The newly created leave instance.
-
-        Raises:
-            serializers.ValidationError: If a leave already exists for the counsellor on the same date
-                or if the date is in the past.
-
-        """
+        slot_ids = validated_data.get('slots')
+        slots = AvailableSlot.objects.filter(id__in=slot_ids)
         date = validated_data.get('date')
         with transaction.atomic():
-            self.update_slots_and_bookings(date)
+            try:
+                self.update_slots_and_bookings(slots, date)
+            except ValueError as e: 
+                raise serializers.ValidationError({'detail': str(e)})
             return super().create(validated_data)
+  

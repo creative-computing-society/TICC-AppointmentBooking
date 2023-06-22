@@ -3,10 +3,11 @@ from rest_framework import generics, permissions, authentication, serializers, s
 from users.authentication import TokenAuthentication
 from users.permissions import isTiccCounsellorOrManager
 from .serializers import AvailableSlotSerializer, HolidaySerializer, LeaveSerializer
-from .models import AvailableSlot, Holiday, Leave
+from .models import AvailableSlot, Holiday, Leave, LeaveSlot
 from rest_framework.response import Response
 from users.models import User
 from django.apps import apps
+from rest_framework.views import APIView
 # Create your views here.
 
 Booking = apps.get_model('users', 'Booking')
@@ -17,9 +18,10 @@ class AvailableSlotList(generics.ListAPIView):
     authentication_classes = [TokenAuthentication, authentication.SessionAuthentication]
 
     def get_queryset(self):
-        start_date = self.request.data.get('start_date')
-        end_date = self.request.data.get('end_date')
-        isAvailable = self.request.data.get('isAvailable')
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        isAvailable = self.request.query_params.get('isAvailable')
+        print(start_date, end_date, isAvailable)
         if start_date and end_date:
             # Perform validation on start_date and end_date if required
             queryset = AvailableSlot.objects.filter(date__range=[start_date, end_date])
@@ -40,7 +42,7 @@ class AvailableSlotDetail(generics.RetrieveAPIView):
     authentication_classes = [TokenAuthentication, authentication.SessionAuthentication]
 
     def get_object(self):
-        slot_id = self.request.data.get('slot_id')
+        slot_id = self.request.query_params.get('slot_id')
         queryset = AvailableSlot.objects.all()
         obj = generics.get_object_or_404(queryset, id=slot_id)
         return obj
@@ -91,17 +93,55 @@ class DeleteHolidayView(generics.DestroyAPIView):
                 return Response({'detail': 'No holiday found for the specified date'}, status=404)
         return Response({'detail': 'Please provide a date'}, status=400)
     
+     
     
-class CreateListLeaveView(generics.ListCreateAPIView):
-    """
-    API view for creating and listing leave instances.
+class CreateLeaveView(APIView):
 
-    GET:
-    Retrieve leave instances for the specified counsellor or list all leave instances.
+    permission_classes = [permissions.IsAuthenticated, isTiccCounsellorOrManager]
+    authentication_classes = [TokenAuthentication, authentication.SessionAuthentication]
+    queryset = Leave.objects.all()
+    serializer_class = LeaveSerializer
 
-    POST:
-    Create a new leave instance for the specified counsellor.
-    """
+    def post(self, request):
+
+        method = request.data.get('method')
+
+        if method == 'by_date':
+            date = request.data.get('date')
+            slot_ids = AvailableSlot.objects.filter(date=date, isAvailable=True).values_list('id', flat=True)
+        elif method == 'by_slot':
+            slot_ids = request.data.get('slots')
+            slots = AvailableSlot.objects.filter(id__in=slot_ids)
+            distinct_dates = slots.values_list('date', flat=True).distinct()
+            if len(distinct_dates) > 1:
+                return Response({'detail': 'Slots must be on the same date'}, status=status.HTTP_400_BAD_REQUEST)
+            date = distinct_dates[0]
+        else:
+            return Response({'detail': 'Invalid method'}, status=status.HTTP_400_BAD_REQUEST)
+    
+        counsellor_id = self.request.data.get('counsellor')
+        if not counsellor_id:
+            return Response({'detail': 'Please provide a counsellor'}, status=400)
+        try:
+            counsellor = User.objects.get(id=counsellor_id, is_ticc_counsellor=True)
+        except User.DoesNotExist:
+            return Response({'detail': 'The specified user does not exist or is not a TICC counsellor.'}, status=404)
+        
+        data = {
+            'counsellor': counsellor_id,
+            'date': date,
+            'slots': slot_ids
+        }
+        request.data.update(data)
+        serializer = LeaveSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save(slots=slot_ids, counsellor=counsellor)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class ListLeaveView(APIView):
 
     permission_classes = [permissions.IsAuthenticated, isTiccCounsellorOrManager]
     authentication_classes = [TokenAuthentication, authentication.SessionAuthentication]
@@ -109,111 +149,47 @@ class CreateListLeaveView(generics.ListCreateAPIView):
     serializer_class = LeaveSerializer
 
     def get(self, request, *args, **kwargs):
-        """
-        Retrieve leave instances for the specified counsellor or list all leave instances.
 
-        Parameters:
-        - counsellor: The ID of the counsellor for whom to retrieve leave instances.
-
-        Returns:
-        - If the 'counsellor' parameter is provided:
-            - 200 OK with the leave instances for the specified counsellor.
-            - 404 Not Found if the specified counsellor does not exist or is not a counsellor.
-            - 404 Not Found if no leave instances are found for the specified counsellor.
-        - If the 'counsellor' parameter is not provided:
-            - The default list view behavior is invoked, returning all leave instances.
-        """
         # Check if counsellor parameter is provided
         counsellor_id = self.request.query_params.get('counsellor')
-
+        leaves = Leave.objects.all()
         if counsellor_id:
-            try:
-                counsellor = User.objects.get(id=counsellor_id)
-                if not counsellor.is_ticc_counsellor:
-                    return Response({'detail': 'The specified user is not a counsellor'}, status=400)
-            except User.DoesNotExist:
-                return Response({'detail': 'The specified user does not exist'}, status=404)
-            # Retrieve leave details for the specified counsellor
-            try:
-                leaves = Leave.objects.filter(counsellor=counsellor)
-                serializer = self.get_serializer(leaves, many=True)
-                return Response(serializer.data)
-            except Leave.DoesNotExist:
-                return Response({'detail': 'No leave found for the specified counsellor'}, status=404)
-        
-        return self.list(request, *args, **kwargs)
-    
-    def post(self, request, *args, **kwargs):
-        """
-        Create a new leave instance for the specified counsellor.
-
-        Parameters:
-        - counsellor: The ID of the counsellor for whom to create a leave instance.
-        - date: The date of the leave instance.
-        - description (optional): The description or reason for the leave.
-
-        Returns:
-        - 201 Created with the newly created leave instance.
-        - 400 Bad Request if the 'counsellor' parameter is missing.
-        - 400 Bad Request if a leave instance for the specified counsellor already exists on the provided date.
-        - 404 Not Found if the specified user does not exist or is not a TICC counsellor.
-        """
-        counsellor_id = self.request.data.get('counsellor')
-        date = self.request.data.get('date')
-
-        # Check if counsellor parameter is provided
-        if not counsellor_id:
-            return Response({'detail': 'Counsellor ID is required.'}, status=400)
-
-        # Check if a leave for the specified counsellor already exists on this date
-        if Leave.objects.filter(counsellor_id=counsellor_id, date=date).exists():
-            return Response({'detail': 'A leave for the specified counsellor already exists on this date.'}, status=400)
-
-        # Check if the specified user is a TICC counsellor
-        try:
-            counsellor = User.objects.get(id=counsellor_id, is_ticc_counsellor=True)
-        except User.DoesNotExist:
-            return Response({'detail': 'The specified user does not exist or is not a TICC counsellor.'}, status=404)
-
-        # Create a new leave instance
-        leave_data = {
-            'counsellor': counsellor_id,
-            'date': date,
-            'description': self.request.data.get('description', '')
-        }
-        serializer = self.get_serializer(data=leave_data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        return Response(serializer.data, status=201)
+            leaves = leaves.filter(counsellor=counsellor_id)
+        serializer = LeaveSerializer(leaves, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class DeleteLeaveView(generics.DestroyAPIView):
+class DeleteLeaveView(APIView):
     permission_classes = [permissions.IsAuthenticated, isTiccCounsellorOrManager]
     authentication_classes = [TokenAuthentication, authentication.SessionAuthentication]
     queryset = Leave.objects.all()
     serializer_class = LeaveSerializer
 
     def delete(self, request, *args, **kwargs):
-        leave_id = self.request.data.get('leave_id')
+        leave_id = self.request.query_params.get('leave_id')
         try: 
             leave = Leave.objects.get(id=leave_id)
-            leave.delete()
-            slots = AvailableSlot.objects.filter(date=leave.date)
-            for slot in slots:
-                slot.capacity = slot.capacity + 2
-                slot.isAvailable = True
-                slot.save()
-                    # #send users of booked slots a notification
-                    # booked_slot  s = Booking.objects.filter(slot=slot)
-                    # for booked_slot in booked_slots:
-                    #     user = booked_slot.user
-                    #     message = "A slot you booked on " + str(slot.date) + " at " + str(slot.time) + " has been cancelled. Please book another slot."
-            if not Holiday.objects.filter(date=leave.date).exists():
-                AvailableSlot.objects.filter(date=leave.date).update(isAvailable=True)
-
-            return Response(status=204)
         except Leave.DoesNotExist:
             return Response({'detail': 'No leave found for the specified id'}, status=404)
+        
+        leave_slots = LeaveSlot.objects.filter(leave=leave)
+        slot_ids = [leave_slot.slot.id for leave_slot in leave_slots]
+
+        slots = slots = AvailableSlot.objects.filter(id__in=slot_ids)
+
+        isAvailable = True
+        if Holiday.objects.filter(date=leave.date).exists():
+            isAvailable = False
+        for slot in slots:
+            slot.capacity += 2
+            slot.save()
+            slot.isAvailable = isAvailable
+        # #send users of booked slots a notification
+        # booked_slot  s = Booking.objects.filter(slot=slot)
+        # for booked_slot in booked_slots:
+        #     user = booked_slot.user
+        #     message = "A slot you booked on " + str(slot.date) + " at " + str(slot.time) + " has been cancelled. Please book another slot."
+        leave.delete()
+        return Response(status=204)
 
     
