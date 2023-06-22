@@ -30,11 +30,15 @@ class StudentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)  # Use read_only=True to prevent user creation/update
 
     def update(self, instance, validated_data):
+
         # Update student fields if they are not already present
-        fields_to_update = ['roll_number', 'branch', 'admission_year', 'gender']
+        fields_to_update = ['roll_number', 'admission_year', 'gender']
         for field in fields_to_update:
             if field in validated_data and not getattr(instance, field):
                 setattr(instance, field, validated_data[field])
+        #allow student to update branch even if it is already present
+        if 'branch' in validated_data:
+            setattr(instance, 'branch', validated_data['branch'])
         instance.save()
         return instance
 
