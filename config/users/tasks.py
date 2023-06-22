@@ -5,11 +5,9 @@ from django.utils import timezone
 from .models import Booking
 from django.utils.html import strip_tags
 from django.conf import settings
-from dotenv import load_dotenv
 import os
 import datetime
 
-load_dotenv()
 @shared_task
 def send_6AM_booking_notification():
     # Get the current date
