@@ -11,6 +11,7 @@ class AvailableSlot(models.Model):
     slots_booked = models.IntegerField(default=0)
     capacity = models.IntegerField(default=4)
     isAvailable = models.BooleanField(default=True)
+    leaves = models.ManyToManyField('Leave', through='LeaveSlot')
 
     def save(self, *args, **kwargs):
         if self.slots_booked >= 4:
@@ -66,7 +67,7 @@ class AvailableSlot(models.Model):
             return
 
         # Generate slots for the next day
-        for j in range(0, 16, 2):
+        for j in range(0, 16, 1):
             start_minute = j * 30
             end_minute = (j + 1) * 30
             start_datetime = timezone.datetime.combine(date, start_time) + timezone.timedelta(minutes=start_minute)
@@ -95,7 +96,7 @@ class AvailableSlot(models.Model):
             next_day += timezone.timedelta(days=1)
 
         # Generate slots for the next day
-        for j in range(0, 16, 2):
+        for j in range(0, 16, 1):
             start_minute = j * 30
             end_minute = (j + 1) * 30
             start_datetime = timezone.datetime.combine(next_day, start_time) + timezone.timedelta(minutes=start_minute)
@@ -138,18 +139,17 @@ class Holiday(models.Model):
 
 class Leave(models.Model):
     counsellor = models.ForeignKey('users.User', on_delete=models.CASCADE, limit_choices_to={'is_ticc_counsellor': True})
-    date = models.DateField()
+    slots = models.ManyToManyField(AvailableSlot, through='LeaveSlot')
     description = models.CharField(max_length=100, blank=True, null=True)
+    date = models.DateField()
     def save(self, *args, **kwargs):
 
-        #check if counsellor already has a leave on the same date
-        if Leave.objects.filter(counsellor=self.counsellor, date=self.date).exists():
-            raise ValueError('Leave already exists for this counsellor on this date.')
         #check if start date is in the future or today
         if self.date < timezone.now().date():
             raise ValueError('Start date must be in the future or today')
         super().save(*args, **kwargs)
 
-
-        
-
+  
+class LeaveSlot(models.Model):
+    leave = models.ForeignKey(Leave, on_delete=models.CASCADE)
+    slot = models.ForeignKey(AvailableSlot, on_delete=models.CASCADE)
