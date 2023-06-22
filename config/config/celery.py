@@ -16,6 +16,8 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
+# Set the Celery beat scheduler to operate in the 'Asia/Kolkata' time zone
+app.conf.beat_scheduler = 'django_celery_beat.schedulers:DatabaseScheduler'
 
 # Add the schedule for the generate_slots task
 app.conf.beat_schedule = {
