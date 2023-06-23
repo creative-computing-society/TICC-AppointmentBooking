@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied
 from .tasks import send_booking_confirmation_email
+from django.utils import timezone
 
 class UserList(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated, IsTiccCounsellor]
@@ -313,6 +314,10 @@ class emailBookingCancellation(APIView):
 
 
 class SearchView(APIView):
+
+    permission_classes = [permissions.IsAuthenticated, IsTiccCounsellor]
+    authentication_classes = [TokenAuthentication, authentication.SessionAuthentication]
+
     def get(self, request):
         search_word = request.query_params.get('searchWord', '')
 
@@ -327,3 +332,6 @@ class SearchView(APIView):
         # Serialize the results
         serializer = StudentSerializer(students, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+        
+        

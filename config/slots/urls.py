@@ -10,4 +10,5 @@ urlpatterns = [
     path('leaves/list/', views.ListLeaveView.as_view(), name='leaves'),
     path('leaves/delete/', views.DeleteLeaveView.as_view(), name='update-leaves-delete'),
     path('leaves/add/', views.CreateLeaveView.as_view(), name='create-leaves'),
+    path('generateslots/', views.GenerateSlotsView.as_view(), name='generate-slots'),
 ]

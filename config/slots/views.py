@@ -8,6 +8,8 @@ from rest_framework.response import Response
 from users.models import User
 from django.apps import apps
 from rest_framework.views import APIView
+from django.utils import timezone
+from users.permissions import IsTiccCounsellor
 # Create your views here.
 
 Booking = apps.get_model('users', 'Booking')
@@ -193,3 +195,40 @@ class DeleteLeaveView(APIView):
         return Response(status=204)
 
     
+
+class GenerateSlotsView(APIView):
+
+    permission_classes = [permissions.IsAuthenticated, IsTiccCounsellor]
+    authentication_classes = [TokenAuthentication, authentication.SessionAuthentication]
+    queryset = AvailableSlot.objects.all()
+    serializer_class = AvailableSlotSerializer
+
+    def post(self, request):
+
+        date = request.data.get('date')
+        start_time = request.data.get('start_time', 9)
+        end_time = request.data.get('end_time', 16)
+        capacity = request.data.get('capacity', 4)
+
+        if not date:
+            return Response({'detail': 'Please provide a date'}, status=status.HTTP_400_BAD_REQUEST)
+        if Holiday.objects.filter(date=date).exists():
+            return Response({'detail': 'Slots cannot be generated for a holiday'}, status=status.HTTP_400_BAD_REQUEST)
+        if AvailableSlot.objects.filter(date=date).exists():
+            return Response({'detail': 'Slots have already been generated for this date'}, status=status.HTTP_400_BAD_REQUEST)
+        slots = []
+        for i in range(start_time, end_time, 1):
+            start_minute = i * 30
+            end_minute = (i + 1) * 30
+            start_datetime = timezone.datetime.combine(date, start_time) + timezone.timedelta(minutes=start_minute)
+            end_datetime = timezone.datetime.combine(date, start_time) + timezone.timedelta(minutes=end_minute)
+            slot = AvailableSlot(date=date, start_time=start_datetime, end_time=end_datetime, capacity=capacity, isAvailable=True)
+            slots.append(slot)
+        try: 
+            AvailableSlot.objects.bulk_create(slots)
+            serializer = AvailableSlotSerializer(slots, many=True)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+            
