@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import AvailableSlot, Leave, Holiday
+from .models import AvailableSlot, Leave, Holiday, LeaveSlot
 # Register your models here.
 
 admin.site.site_header = "TICC Admin"
@@ -28,3 +28,6 @@ class CustomLeaveView(admin.ModelAdmin):
     list_filter = ('date',)
     search_fields = ('counsellor__email', 'date',)
     ordering = ('-date',)
+
+
+admin.site.register(LeaveSlot)

@@ -20,7 +20,7 @@ def generate_slots():
         return
 
     # Generate slots for the next day
-    for j in range(0, 16, 2):
+    for j in range(0, 16, 1):
         start_minute = j * 30
         end_minute = (j + 1) * 30
         start_datetime = timezone.datetime.combine(next_day, start_time) + timezone.timedelta(minutes=start_minute)
