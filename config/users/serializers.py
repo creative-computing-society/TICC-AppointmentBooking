@@ -46,15 +46,26 @@ class StudentSerializer(serializers.ModelSerializer):
 class BookingSerializer(serializers.ModelSerializer):
     student_email = serializers.EmailField(source='student.user.email', read_only=True)
     assigned_counsellor_email = serializers.EmailField(source='assigned_counsellor.user.email', read_only=True)
+    student_name = serializers.CharField(source='student.user.full_name', read_only = True)
+    assigned_counsellor_name = serializers.CharField(source='assigned_counsellor.user.full_name', read_only = True)
     slot = AvailableSlotSerializer(read_only=True)
 
     class Meta:
         model = Booking
         fields = ['id', 'slot', 'student', 'student_email', 'additional_info', 'remarks',
-                  'assigned_counsellor', 'assigned_counsellor_email', 'is_active']
+                  'assigned_counsellor', 'assigned_counsellor_email', 'is_active', 'student_name', 'assigned_counsellor_name',] 
+        
+
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        representation['student'] = instance.student.id
-        representation['assigned_counsellor'] = instance.assigned_counsellor.id if instance.assigned_counsellor else None
+        representation['possible_remarks'] = [
+            'Pending',
+            'Cancelled by student',
+            'Cancelled by counsellor',
+            'Completed',
+            'Missed by student',
+            'Cancelled due to Institute holiday',
+            'Counsellor on leave'
+        ]
         return representation
