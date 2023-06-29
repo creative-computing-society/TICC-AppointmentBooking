@@ -35,3 +35,9 @@ CORS_ALLOWED_ORIGINS = [
     'https://ticc.servatom.com',   # Example: Your production frontend URL
 ]
 
+
+# add authorization header 
+CORS_ALLOW_HEADERS = [
+    'Authorization',
+    'Content-Type',
+]

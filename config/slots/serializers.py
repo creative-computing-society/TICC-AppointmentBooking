@@ -59,8 +59,6 @@ class LeaveSerializer(serializers.ModelSerializer):
 
         validate_future_date(date)
         for slot in slots:
-            print(slot)
-            print("********************")
             if slot.capacity == 2:
                 # For slots with capacity 2, set capacity and bookings to 0
                 slot.capacity = 0

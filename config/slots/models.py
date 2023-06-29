@@ -14,7 +14,7 @@ class AvailableSlot(models.Model):
     leaves = models.ManyToManyField('Leave', through='LeaveSlot')
 
     def save(self, *args, **kwargs):
-        if self.slots_booked >= 4:
+        if self.slots_booked >= self.capacity:
             self.isAvailable = False
         super().save(*args, **kwargs)
 
