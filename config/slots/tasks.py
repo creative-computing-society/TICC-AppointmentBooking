@@ -5,8 +5,11 @@ from celery import shared_task
 @shared_task
 def generate_slots():
     # Define the start and end times for each day
-    start_time = timezone.time(9, 0)
-    end_time = timezone.time(16, 0)
+    #start_time = timezone.time(9, 0)
+    start_time = timezone.datetime.time(timezone.datetime(1, 1, 1, 9, 0))
+
+    #end_time = timezone.time(16, 0)
+    end_time = timezone.datetime.time(timezone.datetime(1, 1, 1, 16, 0))
 
     # Get the current date and time in the "Asia/Kolkata" time zone
     now = timezone.localtime(timezone.now())
