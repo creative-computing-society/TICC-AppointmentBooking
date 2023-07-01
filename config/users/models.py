@@ -40,7 +40,7 @@ class UserManager(BaseUserManager):
 class User(AbstractUser):
     username=None
     email = models.EmailField(unique=True)
-    phone_number = models.CharField(max_length=20)
+    phone_number = models.CharField(max_length=10)
     full_name = models.CharField(max_length=255)
     is_ticc_counsellor = models.BooleanField(default=False)
     is_ticc_manager = models.BooleanField(default=False)

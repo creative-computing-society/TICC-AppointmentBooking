@@ -10,6 +10,7 @@ from django.apps import apps
 from rest_framework.views import APIView
 from django.utils import timezone
 from users.permissions import IsTiccCounsellor
+from datetime import datetime, timedelta, time
 # Create your views here.
 
 Booking = apps.get_model('users', 'Booking')
@@ -197,14 +198,12 @@ class DeleteLeaveView(APIView):
     
 
 class GenerateSlotsView(APIView):
-
     permission_classes = [permissions.IsAuthenticated, IsTiccCounsellor]
     authentication_classes = [TokenAuthentication, authentication.SessionAuthentication]
     queryset = AvailableSlot.objects.all()
     serializer_class = AvailableSlotSerializer
 
     def post(self, request):
-
         date = request.data.get('date')
         start_time = request.data.get('start_time', 9)
         end_time = request.data.get('end_time', 16)
@@ -212,19 +211,29 @@ class GenerateSlotsView(APIView):
 
         if not date:
             return Response({'detail': 'Please provide a date'}, status=status.HTTP_400_BAD_REQUEST)
+
+        date = datetime.strptime(date, '%Y-%m-%d').date()
+
         if Holiday.objects.filter(date=date).exists():
             return Response({'detail': 'Slots cannot be generated for a holiday'}, status=status.HTTP_400_BAD_REQUEST)
+
         if AvailableSlot.objects.filter(date=date).exists():
             return Response({'detail': 'Slots have already been generated for this date'}, status=status.HTTP_400_BAD_REQUEST)
+
+        start_time = time(hour=start_time)
+        end_time = time(hour=end_time)
+
+        start_minute = start_time.hour * 60
+        end_minute = end_time.hour * 60
+
         slots = []
-        for i in range(start_time, end_time, 1):
-            start_minute = i * 30
-            end_minute = (i + 1) * 30
-            start_datetime = timezone.datetime.combine(date, start_time) + timezone.timedelta(minutes=start_minute)
-            end_datetime = timezone.datetime.combine(date, start_time) + timezone.timedelta(minutes=end_minute)
+        for i in range(start_minute, end_minute, 30):
+            start_datetime = datetime.combine(date, start_time) + timedelta(minutes=i)
+            end_datetime = datetime.combine(date, start_time) + timedelta(minutes=i + 30)
             slot = AvailableSlot(date=date, start_time=start_datetime, end_time=end_datetime, capacity=capacity, isAvailable=True)
             slots.append(slot)
-        try: 
+
+        try:
             AvailableSlot.objects.bulk_create(slots)
             serializer = AvailableSlotSerializer(slots, many=True)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
