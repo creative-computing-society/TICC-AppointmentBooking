@@ -46,7 +46,7 @@ class StudentSerializer(serializers.ModelSerializer):
 class BookingSerializer(serializers.ModelSerializer):
     student_email = serializers.EmailField(source='student.user.email', read_only=True)
     student_name = serializers.CharField(source='student.user.full_name', read_only = True)
-    assigned_counsellor_name = serializers.CharField(source='assigned_counsellor.user.full_name')
+    assigned_counsellor_name = serializers.CharField(source='assigned_counsellor.full_name')
     slot = AvailableSlotSerializer(read_only=True)
     user_id = serializers.IntegerField(source='student.user.id', read_only=True)
     phone_number = serializers.CharField(source='student.user.phone_number', read_only=True)

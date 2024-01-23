@@ -3,11 +3,11 @@ from celery import Celery
 from django.conf import settings
 import os
 from celery.schedules import crontab
-
+from django import setup
 
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-
+setup()
 app = Celery('config')
 app.conf.enable_utc = False
 app.conf.update(timezone='Asia/Kolkata')

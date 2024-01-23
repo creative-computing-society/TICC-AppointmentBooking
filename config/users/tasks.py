@@ -7,6 +7,9 @@ from django.utils.html import strip_tags
 from django.conf import settings
 import os
 import datetime
+from datetime import timedelta
+from .serializers import BookingSerializer
+from django.conf import settings
 
 @shared_task
 def send_6AM_booking_notification():
@@ -81,3 +84,53 @@ def send_booking_confirmation_email(reciever_email, context):
     message = strip_tags(html_message)
     send_mail(subject, message, settings.EMAIL_HOST_USER, [reciever_email], html_message=html_message, fail_silently=False)
     print('sent email to ' + reciever_email)
+    
+@shared_task
+def send_weekly_bookings_email():
+    friday = datetime.date.today()
+    start_of_week = friday - datetime.timedelta(days=friday.weekday()) 
+    this_friday = start_of_week + datetime.timedelta(days=4)
+    
+    # Filter bookings within the date range
+    bookings = Booking.objects.filter(slot__date__range=[start_of_week, this_friday])
+    serialzer = BookingSerializer(bookings, many=True)
+    data = serialzer.data
+    #TODO: send email to admin
+    import json
+    json_string = json.dumps(data, indent=2)
+    with open('output.json', 'w') as json_file:
+        json_file.write(json_string)
+    print("JSON file created successfully: output.json")
+    
+@shared_task
+def send_monthly_bookings_email():
+    current_datetime = timezone.localtime(timezone.now())
+    first_day_of_month = current_datetime.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    first_day_of_next_month = (first_day_of_month + timedelta(days=32)).replace(day=1)
+    
+    # Filter bookings within the date range
+    bookings = Booking.objects.filter(slot__date__gte=first_day_of_month, slot__date__lt=first_day_of_next_month)    
+    serialzer = BookingSerializer(bookings, many=True)
+    data = serialzer.data
+    #TODO: send email to admin
+    import json
+    json_string = json.dumps(data, indent=2)
+    with open('output.json', 'w') as json_file:
+        json_file.write(json_string)
+    print("JSON file created successfully: output.json")
+    
+@shared_task
+def send_daily_bookings_email():
+    today = timezone.localtime(timezone.now()).date()
+    # print(settings.TIME_ZONE)
+    # print(timezone.localtime(timezone.now()).date())
+    bookings = Booking.objects.filter(slot__date=today)
+    serialzer = BookingSerializer(bookings, many=True)
+    data = serialzer.data
+    #TODO: send email to admin
+    import json
+    json_string = json.dumps(data, indent=2)
+    
+    with open('output.json', 'w') as json_file:
+        json_file.write(json_string)
+    print("JSON file created successfully: output.json")

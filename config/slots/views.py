@@ -240,4 +240,7 @@ class GenerateSlotsView(APIView):
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-            
+
+
+
+        
