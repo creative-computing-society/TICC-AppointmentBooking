@@ -37,4 +37,16 @@ app.conf.beat_schedule = {
         'task': 'slots.tasks.disable_slots_after_they_are_over',
         'schedule': crontab(hour='9-17', minute='0,30'),
     },
+    'send_daily_bookings_email': {
+        'task': 'users.tasks.send_daily_bookings_email',
+        'schedule': crontab(hour=20, minute=0),
+    },
+    'send_weekly_bookings_email': {
+        'task': 'users.tasks.send_weekly_bookings_email',
+        'schedule': crontab(hour=20, minute=0, day_of_week='friday'),
+    },
+    'send_monthly_bookings_email': {
+        'task': 'users.tasks.send_monthly_bookings_email',
+        'schedule': crontab(hour=6, minute=0, day_of_month='1'),
+    },
 }
